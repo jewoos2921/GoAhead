@@ -1,7 +1,11 @@
+mod map;
+mod player;
+
 use rltk::{Rltk, GameState, RGB, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
 use specs_derive::*;
+use crate::map::new_map_rooms_and_corridors;
 
 #[derive(Component)]
 struct Position {
@@ -74,20 +78,6 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     }
 }
 
-fn player_input(gs: &mut State, ctx: &mut Rltk) {
-    // Player movement
-    match ctx.key {
-        None => {} // Nothing happened
-        Some(key) => match key {
-            VirtualKeyCode::Left => try_move_player(-1, 0, &mut gs.ecs),
-            VirtualKeyCode::Right => try_move_player(1, 0, &mut gs.ecs),
-            VirtualKeyCode::Up => try_move_player(0, -1, &mut gs.ecs),
-            VirtualKeyCode::Down => try_move_player(0, 1, &mut gs.ecs),
-            _ => {}
-        },
-    }
-}
-
 
 fn draw_map(map: &[TileType], ctx: &mut Rltk) {
     let mut x = 0;
@@ -151,10 +141,12 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
+    let (rooms, map) = new_map_rooms_and_corridors();
+    gs.ecs.insert(map);
+    let (player_x, player_y) = rooms[0].center();
 
-    gs.ecs.insert(new_map());
 
-    gs.ecs.create_entity().with(Position { x: 40, y: 25 })
+    gs.ecs.create_entity().with(Position { x: player_x, y: player_y })
         .with(Renderable {
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
