@@ -5,7 +5,7 @@ use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk, SmallV
 use super::{Rect};
 
 #[derive(PartialEq, Copy, Clone)]
-enum TileType {
+pub enum TileType {
     Wall,
     Floor,
 }
@@ -17,6 +17,7 @@ pub struct Map {
     pub width: i32,
     pub height: i32,
     pub revealed_tiles: Vec<bool>,
+    pub visible_tiles: Vec<bool>,
 }
 
 
@@ -35,7 +36,7 @@ impl Map {
 
     fn apply_horizontal_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
         for x in min(x1, x2)..=max(x1, x2) {
-            let idx = xy_idx(x, y);
+            let idx = self.xy_idx(x, y);
             if idx > 0 && idx < self.width as usize * self.height as usize {
                 self.tiles[idx as usize] = TileType::Floor;
             }
@@ -44,7 +45,7 @@ impl Map {
 
     fn apply_vertical_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
         for y in min(y1, y2)..=max(y1, y2) {
-            let idx = xy_idx(x, y);
+            let idx = self.xy_idx(x, y);
             if idx > 0 && idx < self.width as usize * self.height as usize {
                 self.tiles[idx as usize] = TileType::Floor;
             }
@@ -61,6 +62,7 @@ pub fn new_map_rooms_and_corridors() -> Map {
         width: 80,
         height: 50,
         revealed_tiles: vec![false; 80 * 50],
+        visible_tiles: vec![false; 80 * 50],
     };
 
     const MAX_ROOMS: i32 = 30;
@@ -77,15 +79,15 @@ pub fn new_map_rooms_and_corridors() -> Map {
 
         let new_room = Rect::new(x, y, w, h);
         let mut ok = true;
-        for other_room in rooms.iter() {
+        for other_room in map.rooms.iter() {
             if new_room.intersect(other_room) { ok = false }
         }
         if ok {
             map.apply_room_to_map(&new_room);
 
-            if !rooms.is_empty() {
+            if !map.rooms.is_empty() {
                 let (new_x, new_y) = new_room.center();
-                let (prev_x, prev_y) = rooms[rooms.len() - 1].center();
+                let (prev_x, prev_y) = map.rooms[map.rooms.len() - 1].center();
                 if rng.range(0, 2) == 1 {
                     map.apply_horizontal_tunnel(prev_x, new_x, prev_y);
                     map.apply_vertical_tunnel(prev_y, new_y, new_x);

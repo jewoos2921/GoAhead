@@ -10,7 +10,7 @@ use specs_derive::*;
 use component::Viewshed;
 use map::new_map_rooms_and_corridors;
 use visibility_system::VisibilitySystem;
-use crate::map::Map;
+use crate::map::{Map, TileType};
 
 #[derive(Component)]
 struct Position {
@@ -80,20 +80,6 @@ fn new_map() -> Vec<TileType> {
     map
 }
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
-    let mut positions = ecs.write_storage::<Position>();
-    let mut players = ecs.write_storage::<Player>();
-    let map = ecs.fetch::<Vec<TileType>>();
-
-    for (_player, pos) in (&mut players, &mut positions).join() {
-        let destination_idx = xy_idx(pos.x + delta_x, pos.y + delta_y);
-        if map[destination_idx] != TileType::Wall {
-            pos.x = min(79, max(0, pos.x + delta_x));
-            pos.y = min(49, max(0, pos.y + delta_y));
-        }
-    }
-}
-
 
 pub fn draw_map(ecs: &World,
                 ctx: &mut Rltk) {
@@ -105,20 +91,21 @@ pub fn draw_map(ecs: &World,
     for (idx, tile) in map.tiles.iter().enumerate() {
         // Render a tile depending upon the tile type
         if map.revealed_tiles[idx] {
+            let glyph;
+            let mut fg;
+
             match tile {
                 TileType::Floor => {
-                    ctx.set(x, y,
-                            RGB::from_f32(0.5, 0.5, 0.5),
-                            RGB::from_f32(0., 0., 0.),
-                            rltk::to_cp437('.'));
+                    glyph = rltk::to_cp437('.');
+                    fg = RGB::from_f32(0.0, 0.5, 0.5);
                 }
                 TileType::Wall => {
-                    ctx.set(x, y,
-                            RGB::from_f32(0., 1., 0.),
-                            RGB::from_f32(0., 0., 0.),
-                            rltk::to_cp437('#'));
+                    glyph = rltk::to_cp437('#');
+                    fg = RGB::from_f32(0.0, 1., 0.);
                 }
             }
+            if !map.visible_tiles[idx] { fg = fg.to_greyscale() }
+            ctx.set(x, y, fg, RGB::from_f32(0.0, 0., 0.), glyph);
         }
         // Move the coordinates
         x += 1;
@@ -136,7 +123,7 @@ impl GameState for State {
 
         self.run_system();
 
-        let map = self.ecs.fetch::<Vec<TileType>>();
+        let map = self.ecs.fetch::<Map>();
         draw_map(&map, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
@@ -177,7 +164,7 @@ fn main() -> rltk::BError {
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
             bg: RGB::named(rltk::BLACK),
-        }).with(Player {}).with(Viewshed { visible_tiles: Vec::new(), range: 8 }).build();
+        }).with(Player {}).with(Viewshed { visible_tiles: Vec::new(), range: 8, dirty: true }).build();
 
 
     rltk::main_loop(context, gs)
