@@ -8,6 +8,7 @@ mod component;
 mod visibility_system;
 mod rect;
 mod monster_ai_system;
+mod map_indexing_system;
 
 pub use component::*;
 pub use map::*;
@@ -15,6 +16,7 @@ pub use player::*;
 pub use rect::Rect;
 use visibility_system::VisibilitySystem;
 use monster_ai_system::MonsterAI;
+use crate::map_indexing_system::MapIndexingSystem;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { Paused, Running }
@@ -31,6 +33,8 @@ impl State {
         vis.run_now(&self.ecs);
         let mut mob = MonsterAI {};
         mob.run_now(&self.ecs);
+        let mut map_index = MapIndexingSystem {};
+        map_index.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -78,6 +82,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
 
     let map = new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -89,7 +95,13 @@ fn main() -> rltk::BError {
             fg: RGB::named(rltk::YELLOW),
             bg: RGB::named(rltk::BLACK),
         }).with(Player {}).with(Viewshed { visible_tiles: Vec::new(), range: 8, dirty: true })
-        .with(Name { name: "Player".to_string() }).build();
+        .with(Name { name: "Player".to_string() })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
+        }).build();
 
     let mut rng = rltk::RandomNumberGenerator::new();
 
@@ -121,7 +133,14 @@ fn main() -> rltk::BError {
             visible_tiles: Vec::new(),
             range: 8,
             dirty: true,
-        }).with(Monster {}).with(Name { name: format!("{} #{}", &name_r, i) }).build();
+        }).with(Monster {}).with(Name { name: format!("{} #{}", &name_r, i) })
+            .with(BlocksTile {})
+            .with(CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
+            }).build();
     }
 
     gs.ecs.insert(map);
