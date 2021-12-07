@@ -9,6 +9,8 @@ mod visibility_system;
 mod rect;
 mod monster_ai_system;
 mod map_indexing_system;
+mod melee_combat_system;
+mod damage_system;
 
 pub use component::*;
 pub use map::*;
@@ -16,7 +18,8 @@ pub use player::*;
 pub use rect::Rect;
 use visibility_system::VisibilitySystem;
 use monster_ai_system::MonsterAI;
-use crate::map_indexing_system::MapIndexingSystem;
+use map_indexing_system::MapIndexingSystem;
+use damage_system::delete_the_dead;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { Paused, Running }
@@ -35,6 +38,9 @@ impl State {
         mob.run_now(&self.ecs);
         let mut map_index = MapIndexingSystem {};
         map_index.run_now(&self.ecs);
+
+        delete_the_dead(&mut self.ecs);
+
         self.ecs.maintain();
     }
 }
@@ -84,12 +90,14 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
     let map = new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
 
 
-    gs.ecs.create_entity().with(Position { x: player_x, y: player_y })
+    let player_entity = gs.ecs.create_entity().with(Position { x: player_x, y: player_y })
         .with(Renderable {
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
@@ -145,7 +153,8 @@ fn main() -> rltk::BError {
 
     gs.ecs.insert(map);
     gs.ecs.insert(Point::new(player_x, player_y));
-
+    gs.ecs.insert(player_entity);
+    
     rltk::main_loop(context, gs)
 }
 

@@ -1,7 +1,7 @@
 use rltk::{console, Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use crate::CombatStats;
+use crate::{CombatStats, WantsToMelee};
 use super::{Map, Player, Position, State, TileType, Viewshed, RunState};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
@@ -12,21 +12,24 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
     let map = ecs.fetch::<Map>();
 
-    for (_player, pos, viewshed) in
-    (&mut players,
+    let entities = ecs.entities();
+    let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
+
+    for (entity, _player, pos, viewshed) in
+    (&entities, &players,
      &mut positions,
      &mut viewsheds).join() {
+        if pos.x + delta_x < 1 || pos.x + delta_x > map.width - 1 || pos.y + delta_y < 1 ||
+            pos.y + delta_y > map.height - 1 { return; }
+
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
 
-        for potential_targe in map.tile_content[destination_idx].iter() {
-            let target = combat_stats.get(*potential_targe);
-            match target {
-                None => {}
-                Some(t) => {
-                    // Attack it
-                    console::log(&format!("From Hell's Heart, I stab thee!"));
-                    return; // So we don't move after attacking
-                }
+        for potential_target in map.tile_content[destination_idx].iter() {
+            let target = combat_stats.get(*potential_target);
+            if let Some(_target) = target {
+                wants_to_melee.insert(entity, WantsToMelee { target: *potential_target })
+                    .expect("Add target failed");
+                return;
             }
         }
 
