@@ -1,6 +1,6 @@
 use specs::prelude::*;
 
-use rltk::{Rltk, GameState, RGB};
+use rltk::{Rltk, GameState, RGB, Point};
 
 mod map;
 mod player;
@@ -123,9 +123,9 @@ fn main() -> rltk::BError {
             dirty: true,
         }).with(Monster {}).with(Name { name: format!("{} #{}", &name_r, i) }).build();
     }
-    
+
     gs.ecs.insert(map);
-    gs.ecs.insert(Position::new(player_x, player_y));
+    gs.ecs.insert(Point::new(player_x, player_y));
 
     rltk::main_loop(context, gs)
 }
