@@ -1,19 +1,35 @@
-use rltk::{Point, Rltk, VirtualKeyCode};
+use rltk::{console, Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
+use crate::CombatStats;
 use super::{Map, Player, Position, State, TileType, Viewshed, RunState};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
     let mut viewsheds = ecs.write_storage::<Viewshed>();
+    let combat_stats = ecs.read_storage::<CombatStats>();
+
     let map = ecs.fetch::<Map>();
 
-
-    for (_player, pos, viewshed) in (&mut players,
-                                     &mut positions,
-                                     &mut viewsheds).join() {
+    for (_player, pos, viewshed) in
+    (&mut players,
+     &mut positions,
+     &mut viewsheds).join() {
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
+
+        for potential_targe in map.tile_content[destination_idx].iter() {
+            let target = combat_stats.get(*potential_targe);
+            match target {
+                None => {}
+                Some(t) => {
+                    // Attack it
+                    console::log(&format!("From Hell's Heart, I stab thee!"));
+                    return; // So we don't move after attacking
+                }
+            }
+        }
+
         if !map.blocked[destination_idx] {
             pos.x = min(79, max(0, pos.x + delta_x));
             pos.y = min(49, max(0, pos.y + delta_y));
