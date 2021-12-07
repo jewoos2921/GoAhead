@@ -1,8 +1,9 @@
 // Make a map with solid boundaries adn 400 randomly placed walls. No guarantees that it won't look awful.
 
 use std::cmp::{max, min};
-use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk, SmallVec};
+use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk};
 use super::{Rect};
+use specs::prelude::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {
@@ -25,6 +26,7 @@ impl Map {
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
         (y as usize * self.width as usize) + x as usize
     }
+
     fn apply_room_to_map(&mut self, room: &Rect) {
         for y in room.y1 + 1..=room.y2 {
             for x in room.x1 + 1..=room.x2 {
@@ -54,7 +56,7 @@ impl Map {
 }
 
 // Make a new map using algorithm
-
+// This gives a handful of random rooms and corridors joining them together.
 pub fn new_map_rooms_and_corridors() -> Map {
     let mut map = Map {
         tiles: vec![TileType::Wall; 80 * 50],
@@ -79,9 +81,11 @@ pub fn new_map_rooms_and_corridors() -> Map {
 
         let new_room = Rect::new(x, y, w, h);
         let mut ok = true;
+
         for other_room in map.rooms.iter() {
             if new_room.intersect(other_room) { ok = false }
         }
+
         if ok {
             map.apply_room_to_map(&new_room);
 
@@ -126,6 +130,7 @@ pub fn draw_map(ecs: &World,
 
     for (idx, tile) in map.tiles.iter().enumerate() {
         // Render a tile depending upon the tile type
+
         if map.revealed_tiles[idx] {
             let glyph;
             let mut fg;
