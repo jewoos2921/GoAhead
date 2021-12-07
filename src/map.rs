@@ -1,14 +1,67 @@
 // Make a map with solid boundaries adn 400 randomly placed walls. No guarantees that it won't look awful.
 
 use std::cmp::{max, min};
-use rltk::RandomNumberGenerator;
-use crate::{TileType, xy_idx};
+use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk, SmallVec};
+use super::{Rect};
 
-// pub fn new_map_test() -> Vec<TileType> {}
+#[derive(PartialEq, Copy, Clone)]
+enum TileType {
+    Wall,
+    Floor,
+}
 
-pub fn new_map_rooms_and_corridors() -> (Vec<Rect>, Vec<TileType>) {
-    let mut map = vec![TileType::Wall; 80 * 50];
-    let mut rooms: Vec<Rect> = Vec::new();
+#[derive(Default)]
+pub struct Map {
+    pub tiles: Vec<TileType>,
+    pub rooms: Vec<Rect>,
+    pub width: i32,
+    pub height: i32,
+    pub revealed_tiles: Vec<bool>,
+}
+
+
+impl Map {
+    pub fn xy_idx(&self, x: i32, y: i32) -> usize {
+        (y as usize * self.width as usize) + x as usize
+    }
+    fn apply_room_to_map(&mut self, room: &Rect) {
+        for y in room.y1 + 1..=room.y2 {
+            for x in room.x1 + 1..=room.x2 {
+                let idx = self.xy_idx(x, y);
+                self.tiles[idx] = TileType::Floor;
+            }
+        }
+    }
+
+    fn apply_horizontal_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
+        for x in min(x1, x2)..=max(x1, x2) {
+            let idx = xy_idx(x, y);
+            if idx > 0 && idx < self.width as usize * self.height as usize {
+                self.tiles[idx as usize] = TileType::Floor;
+            }
+        }
+    }
+
+    fn apply_vertical_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
+        for y in min(y1, y2)..=max(y1, y2) {
+            let idx = xy_idx(x, y);
+            if idx > 0 && idx < self.width as usize * self.height as usize {
+                self.tiles[idx as usize] = TileType::Floor;
+            }
+        }
+    }
+}
+
+// Make a new map using algorithm
+
+pub fn new_map_rooms_and_corridors() -> Map {
+    let mut map = Map {
+        tiles: vec![TileType::Wall; 80 * 50],
+        rooms: Vec::new(),
+        width: 80,
+        height: 50,
+        revealed_tiles: vec![false; 80 * 50],
+    };
 
     const MAX_ROOMS: i32 = 30;
     const MIN_SIZE: i32 = 6;
@@ -19,76 +72,44 @@ pub fn new_map_rooms_and_corridors() -> (Vec<Rect>, Vec<TileType>) {
     for _ in 0..MAX_ROOMS {
         let w = rng.range(MIN_SIZE, MAX_SIZE);
         let h = rng.range(MIN_SIZE, MAX_SIZE);
-        let x = rng.roll_dice(1, 80 - w - 1) - 1;
-        let y = rng.roll_dice(1, 50 - h - 1) - 1;
+        let x = rng.roll_dice(1, map.width - w - 1) - 1;
+        let y = rng.roll_dice(1, map.height - h - 1) - 1;
+
         let new_room = Rect::new(x, y, w, h);
         let mut ok = true;
         for other_room in rooms.iter() {
-            if new_room.intersect(other_room) { ok = false; }
+            if new_room.intersect(other_room) { ok = false }
         }
         if ok {
-            apply_room_to_map(&new_room, &mut map);
+            map.apply_room_to_map(&new_room);
+
             if !rooms.is_empty() {
                 let (new_x, new_y) = new_room.center();
                 let (prev_x, prev_y) = rooms[rooms.len() - 1].center();
                 if rng.range(0, 2) == 1 {
-                    apply_horizontal_tunnel(&mut map, prev_x, new_x, prev_y);
-                    apply_vertical_tunnel(&mut map, prev_y, new_y, new_x);
+                    map.apply_horizontal_tunnel(prev_x, new_x, prev_y);
+                    map.apply_vertical_tunnel(prev_y, new_y, new_x);
                 } else {
-                    apply_vertical_tunnel(&mut map, prev_y, new_y, prev_x);
-                    apply_horizontal_tunnel(&mut map, prev_x, new_x, new_y);
+                    map.apply_vertical_tunnel(prev_y, new_y, prev_x);
+                    map.apply_horizontal_tunnel(prev_x, new_x, new_y);
                 }
             }
 
-            rooms.push(new_room);
+            map.rooms.push(new_room);
         }
     }
-
-    (rooms, map)
+    map
 }
 
-pub struct Rect {
-    pub x1: i32,
-    pub x2: i32,
-    pub y1: i32,
-    pub y2: i32,
-}
 
-impl Rect {
-    pub fn new(x: i32, y: i32, w: i32, h: i32) -> Rect {
-        Rect { x1: x, y1: y, x2: x + w, y2: y + h }
-    }
-    // Returns true if this overlaps with other
-    pub fn intersect(&self, other: &Rect) -> bool {
-        self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
-    }
-    pub fn center(&self) -> (i32, i32) {
-        ((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+impl BaseMap for Map {
+    fn is_opaque(&self, idx: usize) -> bool {
+        self.tiles[idx as usize] == TileType::Wall
     }
 }
 
-fn apply_room_to_map(room: &Rect, map: &mut [TileType]) {
-    for y in room.y1 + 1..=room.y2 {
-        for x in room.x1 + 1..=room.x2 {
-            map[xy_idx(x, y)] = TileType::Floor;
-        }
-    }
-}
-
-fn apply_horizontal_tunnel(map: &mut [TileType], x1: i32, x2: i32, y: i32) {
-    for x in min(x1, x2)..=max(x1, x2) {
-        let idx = xy_idx(x, y);
-        if idx > 0 && idx < 80 * 50 {
-            map[idx as usize] = TileType::Floor;
-        }
-    }
-}
-
-fn apply_vertical_tunnel(map: &mut [TileType], y1: i32, y2: i32, x: i32) {
-    for y in min(y1, y2)..=max(y1, y2) {
-        let idx = xy_idx(x, y);
-        if idx > 0 && idx < 80 * 50 {
-            map[idx as usize] = TileType::Floor;
-        }
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width, self.height)
     }
 }

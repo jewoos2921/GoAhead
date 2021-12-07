@@ -1,11 +1,16 @@
 mod map;
 mod player;
+mod component;
+mod visibility_system;
 
-use rltk::{Rltk, GameState, RGB, VirtualKeyCode};
+use rltk::{Rltk, GameState, RGB, VirtualKeyCode, Point};
 use specs::prelude::*;
 use std::cmp::{max, min};
 use specs_derive::*;
-use crate::map::new_map_rooms_and_corridors;
+use component::Viewshed;
+use map::new_map_rooms_and_corridors;
+use visibility_system::VisibilitySystem;
+use crate::map::Map;
 
 #[derive(Component)]
 struct Position {
@@ -23,19 +28,30 @@ struct Renderable {
 #[derive(Component, Debug)]
 struct Player {}
 
-#[derive(PartialEq, Copy, Clone)]
-enum TileType {
-    Wall,
-    Floor,
+pub struct Rect {
+    pub x1: i32,
+    pub x2: i32,
+    pub y1: i32,
+    pub y2: i32,
+}
+
+impl Rect {
+    pub fn new(x: i32, y: i32, w: i32, h: i32) -> Rect {
+        Rect { x1: x, y1: y, x2: x + w, y2: y + h }
+    }
+    // Returns true if this overlaps with other
+    pub fn intersect(&self, other: &Rect) -> bool {
+        self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
+    }
+    pub fn center(&self) -> (i32, i32) {
+        ((self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2)
+    }
 }
 
 struct State {
     ecs: World,
 }
 
-pub fn xy_idx(x: i32, y: i32) -> usize {
-    (y as usize * 80) + x as usize
-}
 
 fn new_map() -> Vec<TileType> {
     let mut map = vec![TileType::Floor; 80 * 50];
@@ -79,23 +95,29 @@ fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 }
 
 
-fn draw_map(map: &[TileType], ctx: &mut Rltk) {
+pub fn draw_map(ecs: &World,
+                ctx: &mut Rltk) {
+    let map = ecs.fetch::<Map>();
+
     let mut x = 0;
     let mut y = 0;
-    for tile in map.iter() {
+
+    for (idx, tile) in map.tiles.iter().enumerate() {
         // Render a tile depending upon the tile type
-        match tile {
-            TileType::Floor => {
-                ctx.set(x, y,
-                        RGB::from_f32(0.5, 0.5, 0.5),
-                        RGB::from_f32(0., 0., 0.),
-                        rltk::to_cp437('.'));
-            }
-            TileType::Wall => {
-                ctx.set(x, y,
-                        RGB::from_f32(0., 1., 0.),
-                        RGB::from_f32(0., 0., 0.),
-                        rltk::to_cp437('#'));
+        if map.revealed_tiles[idx] {
+            match tile {
+                TileType::Floor => {
+                    ctx.set(x, y,
+                            RGB::from_f32(0.5, 0.5, 0.5),
+                            RGB::from_f32(0., 0., 0.),
+                            rltk::to_cp437('.'));
+                }
+                TileType::Wall => {
+                    ctx.set(x, y,
+                            RGB::from_f32(0., 1., 0.),
+                            RGB::from_f32(0., 0., 0.),
+                            rltk::to_cp437('#'));
+                }
             }
         }
         // Move the coordinates
@@ -107,11 +129,11 @@ fn draw_map(map: &[TileType], ctx: &mut Rltk) {
     }
 }
 
+
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
 
-        player_input(self, ctx);
         self.run_system();
 
         let map = self.ecs.fetch::<Vec<TileType>>();
@@ -129,6 +151,8 @@ impl GameState for State {
 
 impl State {
     fn run_system(&mut self) {
+        let mut vis = VisibilitySystem {};
+        vis.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -141,6 +165,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Viewshed>();
+
     let (rooms, map) = new_map_rooms_and_corridors();
     gs.ecs.insert(map);
     let (player_x, player_y) = rooms[0].center();
@@ -151,7 +177,7 @@ fn main() -> rltk::BError {
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
             bg: RGB::named(rltk::BLACK),
-        }).with(Player {}).build();
+        }).with(Player {}).with(Viewshed { visible_tiles: Vec::new(), range: 8 }).build();
 
 
     rltk::main_loop(context, gs)
