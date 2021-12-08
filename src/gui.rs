@@ -1,8 +1,6 @@
 use specs::prelude::*;
 use rltk::{RGB, Rltk, Point, VirtualKeyCode};
-use crate::{InBackPack, State};
-
-use super::{CombatStats, Player, GameLog, Map, Name, Position};
+use super::{CombatStats, Player, GameLog, Map, Name, Position,InBackPack, State};
 
 
 pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {

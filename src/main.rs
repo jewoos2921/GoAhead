@@ -1,5 +1,4 @@
 use specs::prelude::*;
-
 use rltk::{Rltk, GameState, RGB, Point, RandomNumberGenerator};
 
 mod map;

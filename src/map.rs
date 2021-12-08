@@ -3,8 +3,8 @@
 use std::cmp::{max, min};
 use std::process::id;
 use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk, SmallVec};
-use super::{Rect};
 use specs::prelude::*;
+use super::{Rect};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {

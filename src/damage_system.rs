@@ -1,7 +1,6 @@
 use rltk::console;
 use specs::prelude::*;
-use crate::{GameLog, Name, Player};
-use super::{CombatStats, SufferDamage};
+use super::{CombatStats, SufferDamage, GameLog, Name, Player};
 
 pub struct DamageSystem {}
 
