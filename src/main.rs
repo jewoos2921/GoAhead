@@ -11,6 +11,7 @@ mod monster_ai_system;
 mod map_indexing_system;
 mod melee_combat_system;
 mod damage_system;
+mod gui;
 
 pub use component::*;
 pub use map::*;
@@ -20,8 +21,8 @@ use visibility_system::VisibilitySystem;
 use monster_ai_system::MonsterAI;
 use map_indexing_system::MapIndexingSystem;
 use damage_system::delete_the_dead;
-use crate::damage_system::DamageSystem;
-use crate::melee_combat_system::MeleeCombatSystem;
+use damage_system::DamageSystem;
+use melee_combat_system::MeleeCombatSystem;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
@@ -45,7 +46,7 @@ impl State {
         let mut melee = MeleeCombatSystem {};
         melee.run_now(&self.ecs);
 
-        let mut damage = DamageSystem{};
+        let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
 
         self.ecs.maintain();
@@ -56,7 +57,7 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
-
+        gui::draw_ui(&self.ecs, ctx);
         let mut new_run_state;
         {
             let run_state = self.ecs.fetch::<RunState>();
