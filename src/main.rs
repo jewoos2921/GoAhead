@@ -26,7 +26,7 @@ use damage_system::delete_the_dead;
 use damage_system::DamageSystem;
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
-use spawner::{player, random_monster};
+use spawner::{player, random_monster, spawn_room};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
@@ -135,8 +135,7 @@ fn main() -> rltk::BError {
     let player_entity = player(&mut gs.ecs, player_x, player_y);
     gs.ecs.insert(RandomNumberGenerator::new());
     for room in map.rooms.iter().skip(1) {
-        let (x, y) = room.center();
-        random_monster(&mut gs.ecs, x, y);
+        spawn_room(&mut gs.ecs, room);
     }
 
     gs.ecs.insert(map);
