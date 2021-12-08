@@ -27,11 +27,13 @@ use damage_system::DamageSystem;
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, random_monster, spawn_room};
-use inventory_system::ItemCollectionSystem;
+use inventory_system::{ItemCollectionSystem, ItemDropSystem};
+
 use gui::show_inventory;
+use gui::drop_item_menu;
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory }
+pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory, ShowDropItem }
 
 pub struct State {
     pub ecs: World,
@@ -57,6 +59,9 @@ impl State {
 
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
+
+        let mut drop_items = ItemDropSystem {};
+        drop_items.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -103,6 +108,21 @@ impl GameState for State {
                         let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
                         intent.insert(*self.ecs.fetch::<Entity>(),
                                       WantsToDrinkPotion { potion: item_entity }).expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowDropItem => {
+                let result = drop_item_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+
+                        let mut intent = self.ecs.write_storage::<WantsToDropItem>();
+                        intent.insert(*self.ecs.fetch::<Entity>(),
+                                      WantsToDropItem { item: item_entity }).expect("Unable to insert intent");
                         new_run_state = RunState::PlayerTurn;
                     }
                 }
