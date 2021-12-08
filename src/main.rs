@@ -14,6 +14,7 @@ mod damage_system;
 mod gui;
 mod game_log;
 mod spawner;
+mod inventory_system;
 
 pub use component::*;
 pub use map::*;
@@ -27,9 +28,11 @@ use damage_system::DamageSystem;
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, random_monster, spawn_room};
+use inventory_system::ItemCollectionSystem;
+use gui::show_inventory;
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
+pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory }
 
 pub struct State {
     pub ecs: World,
@@ -52,6 +55,9 @@ impl State {
 
         let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
+
+        let mut pickup = ItemCollectionSystem {};
+        pickup.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -83,6 +89,11 @@ impl GameState for State {
             RunState::MonsterTurn => {
                 self.run_system();
                 new_run_state = RunState::AwaitingInput;
+            }
+            RunState::ShowInventory => {
+                if show_inventory(self, ctx) == gui::ItemMenuResult::Cancel {
+                    new_run_state = RunState::AwaitingInput;
+                }
             }
         }
         {
@@ -129,7 +140,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
     gs.ecs.register::<Potion>();
-
+    gs.ecs.register::<InBackPack>();
+    gs.ecs.register::<WantsToPickupItem>();
 
     let map = new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
