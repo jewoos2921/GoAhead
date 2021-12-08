@@ -1,6 +1,6 @@
 use specs::prelude::*;
 
-use rltk::{Rltk, GameState, RGB, Point};
+use rltk::{Rltk, GameState, RGB, Point, RandomNumberGenerator};
 
 mod map;
 mod player;
@@ -13,6 +13,7 @@ mod melee_combat_system;
 mod damage_system;
 mod gui;
 mod game_log;
+mod spawner;
 
 pub use component::*;
 pub use map::*;
@@ -25,6 +26,7 @@ use damage_system::delete_the_dead;
 use damage_system::DamageSystem;
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
+use spawner::{player, random_monster};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
@@ -130,58 +132,11 @@ fn main() -> rltk::BError {
     let (player_x, player_y) = map.rooms[0].center();
 
 
-    let player_entity = gs.ecs.create_entity().with(Position { x: player_x, y: player_y })
-        .with(Renderable {
-            glyph: rltk::to_cp437('@'),
-            fg: RGB::named(rltk::YELLOW),
-            bg: RGB::named(rltk::BLACK),
-        }).with(Player {}).with(Viewshed { visible_tiles: Vec::new(), range: 8, dirty: true })
-        .with(Name { name: "Player".to_string() })
-        .with(CombatStats {
-            max_hp: 30,
-            hp: 30,
-            defense: 2,
-            power: 5,
-        }).build();
-
-    let mut rng = rltk::RandomNumberGenerator::new();
-
-    for (i, room) in map.rooms.iter().skip(1).enumerate() {
+    let player_entity = player(&mut gs.ecs, player_x, player_y);
+    gs.ecs.insert(RandomNumberGenerator::new());
+    for room in map.rooms.iter().skip(1) {
         let (x, y) = room.center();
-
-        let glyph_r: rltk::FontCharType;
-        let name_r: String;
-        let roll = rng.roll_dice(1, 2);
-
-        match roll {
-            1 => {
-                glyph_r = rltk::to_cp437('g');
-                name_r = "Goblin".to_string();
-            }
-            _ => {
-                glyph_r = rltk::to_cp437('o');
-                name_r = "Orc".to_string();
-            }
-        }
-
-        gs.ecs.create_entity()
-            .with(Position { x, y })
-            .with(Renderable {
-                glyph: glyph_r,
-                fg: RGB::named(rltk::RED),
-                bg: RGB::named(rltk::BLACK),
-            }).with(Viewshed {
-            visible_tiles: Vec::new(),
-            range: 8,
-            dirty: true,
-        }).with(Monster {}).with(Name { name: format!("{} #{}", &name_r, i) })
-            .with(BlocksTile {})
-            .with(CombatStats {
-                max_hp: 16,
-                hp: 16,
-                defense: 1,
-                power: 4,
-            }).build();
+        random_monster(&mut gs.ecs, x, y);
     }
 
     gs.ecs.insert(map);
