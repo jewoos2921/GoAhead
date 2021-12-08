@@ -24,9 +24,9 @@ pub struct Map {
     pub tile_content: Vec<Vec<Entity>>,
 }
 
-const MAPWIDTH: usize = 80;
-const MAPHEIGHT: usize = 50;
-const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
+pub const MAP_WIDTH: usize = 80;
+pub const MAP_HEIGHT: usize = 43;
+pub const MAP_COUNT: usize = MAP_HEIGHT * MAP_WIDTH;
 
 impl Map {
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
@@ -104,14 +104,14 @@ impl Map {
 // This gives a handful of random rooms and corridors joining them together.
 pub fn new_map_rooms_and_corridors() -> Map {
     let mut map = Map {
-        tiles: vec![TileType::Wall; MAPCOUNT],
+        tiles: vec![TileType::Wall; MAP_COUNT],
         rooms: Vec::new(),
-        width: MAPWIDTH as i32,
-        height: MAPHEIGHT as i32,
-        revealed_tiles: vec![false; MAPCOUNT],
-        visible_tiles: vec![false; MAPCOUNT],
-        blocked: vec![false; MAPCOUNT],
-        tile_content: vec![Vec::new(); MAPCOUNT],
+        width: MAP_WIDTH as i32,
+        height: MAP_HEIGHT as i32,
+        revealed_tiles: vec![false; MAP_COUNT],
+        visible_tiles: vec![false; MAP_COUNT],
+        blocked: vec![false; MAP_COUNT],
+        tile_content: vec![Vec::new(); MAP_COUNT],
     };
 
     const MAX_ROOMS: i32 = 30;

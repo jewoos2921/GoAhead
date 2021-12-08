@@ -1,10 +1,8 @@
 use rltk::{RGB, RandomNumberGenerator};
 use specs::prelude::*;
-use super::{CombatStats, Player, Renderable, Name, Position, Viewshed, Monster, BlocksTile, Rect, Item, Potion};
+use super::{CombatStats, Player, Renderable, Name, Position, Viewshed, Monster, BlocksTile, Rect, Item, Potion ,MAP_WIDTH};
 
-pub const MAPWIDTH: usize = 80;
-pub const MAPHEIGHT: usize = 43;
-pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
+
 const MAX_MONSTERS: i32 = 4;
 const MAX_ITEMS: i32 = 2;
 
@@ -70,7 +68,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
                 let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
                 let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
 
-                let idx = (y * MAPWIDTH) + x;
+                let idx = (y * MAP_WIDTH) + x;
                 if !monster_spawn_points.contains(&idx) {
                     monster_spawn_points.push(idx);
                     added = true;
@@ -82,7 +80,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
             while !added {
                 let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
                 let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * MAPWIDTH) + x;
+                let idx = (y * MAP_WIDTH) + x;
                 if !item_spawn_points.contains(&idx) {
                     item_spawn_points.push(idx);
                     added = true;
@@ -92,15 +90,15 @@ pub fn spawn_room(ecs: &mut World, room: &Rect) {
     }
     // Actually spawn the monsters
     for idx in monster_spawn_points.iter() {
-        let x = *idx % MAPWIDTH;
-        let y = *idx / MAPWIDTH;
+        let x = *idx % MAP_WIDTH;
+        let y = *idx / MAP_WIDTH;
         random_monster(ecs, x as i32, y as i32);
     }
 
     // Actually spawn the potions
     for idx in item_spawn_points.iter() {
-        let x = *idx % MAPWIDTH;
-        let y = *idx / MAPWIDTH;
+        let x = *idx % MAP_WIDTH;
+        let y = *idx / MAP_WIDTH;
         health_potion(ecs, x as i32, y as i32);
     }
 }
