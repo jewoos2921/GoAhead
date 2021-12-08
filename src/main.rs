@@ -76,6 +76,7 @@ impl GameState for State {
         match new_run_state {
             RunState::PreRun => {
                 self.run_system();
+                self.ecs.maintain();
                 new_run_state = RunState::AwaitingInput;
             }
             RunState::AwaitingInput => {
@@ -83,10 +84,12 @@ impl GameState for State {
             }
             RunState::PlayerTurn => {
                 self.run_system();
+                self.ecs.maintain();
                 new_run_state = RunState::MonsterTurn;
             }
             RunState::MonsterTurn => {
                 self.run_system();
+                self.ecs.maintain();
                 new_run_state = RunState::AwaitingInput;
             }
             RunState::ShowInventory => {
@@ -96,11 +99,11 @@ impl GameState for State {
                     gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
                         let item_entity = result.1.unwrap();
-                        let names = self.ecs.read_storage::<Name>();
-                        let mut gamelog = self.ecs.fetch_mut::<GameLog>();
-                        gamelog.entries.push(format!("You try to use {}, but it isn't written yet",
-                                                     names.get(item_entity).unwrap().name));
-                        new_run_state = RunState::AwaitingInput;
+
+                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
+                        intent.insert(*self.ecs.fetch::<Entity>(),
+                                      WantsToDrinkPotion { potion: item_entity }).expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
                     }
                 }
             }
