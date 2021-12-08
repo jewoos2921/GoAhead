@@ -20,6 +20,7 @@ impl<'a> System<'a> for VisibilitySystem {
             player) = data;
 
         for (ent, viewshed, pos) in (&entities, &mut viewshed, &pos).join() {
+
             if viewshed.dirty {
                 viewshed.dirty = false;
                 viewshed.visible_tiles = field_of_view(Point::new(pos.x, pos.y),

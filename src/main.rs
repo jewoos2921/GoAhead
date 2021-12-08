@@ -22,15 +22,14 @@ pub use rect::Rect;
 use visibility_system::VisibilitySystem;
 use monster_ai_system::MonsterAI;
 use map_indexing_system::MapIndexingSystem;
-use damage_system::delete_the_dead;
-use damage_system::DamageSystem;
+use damage_system::{delete_the_dead, DamageSystem};
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, random_monster, spawn_room};
 use inventory_system::{ItemCollectionSystem, ItemDropSystem};
+use gui::{show_inventory, drop_item_menu};
+use crate::inventory_system::PotionUseSystem;
 
-use gui::show_inventory;
-use gui::drop_item_menu;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory, ShowDropItem }
@@ -59,6 +58,10 @@ impl State {
 
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
+        // let itemuse =
+
+        let mut potions = PotionUseSystem {};
+        potions.run_now(&self.ecs);
 
         let mut drop_items = ItemDropSystem {};
         drop_items.run_now(&self.ecs);
@@ -71,7 +74,26 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
-        gui::draw_ui(&self.ecs, ctx);
+        draw_map(&self.ecs, ctx);
+
+        {
+            let positions = self.ecs.read_storage::<Position>();
+            let renderables = self.ecs.read_storage::<Renderable>();
+            let map = self.ecs.fetch::<Map>();
+
+            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+
+            for (pos, render) in data.iter() {
+                let idx = map.xy_idx(pos.x, pos.y);
+                if map.visible_tiles[idx] {
+                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
+                }
+            }
+
+
+            gui::draw_ui(&self.ecs, ctx);
+        }
         let mut new_run_state;
         {
             let run_state = self.ecs.fetch::<RunState>();
@@ -133,20 +155,6 @@ impl GameState for State {
             *run_writer = new_run_state;
         }
         delete_the_dead(&mut self.ecs);
-
-        draw_map(&self.ecs, ctx);
-
-
-        let positions = self.ecs.read_storage::<Position>();
-        let renderables = self.ecs.read_storage::<Renderable>();
-        let map = self.ecs.fetch::<Map>();
-
-        for (pos, render) in (&positions, &renderables).join() {
-            let idx = map.xy_idx(pos.x, pos.y);
-            if map.visible_tiles[idx] {
-                ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-            }
-        }
     }
 }
 
@@ -174,12 +182,15 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Potion>();
     gs.ecs.register::<InBackPack>();
     gs.ecs.register::<WantsToPickupItem>();
+    gs.ecs.register::<WantsToDrinkPotion>();
+    gs.ecs.register::<WantsToDropItem>();
 
-    let map = new_map_rooms_and_corridors();
+    let map: Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
 
 
     let player_entity = player(&mut gs.ecs, player_x, player_y);
+
     gs.ecs.insert(RandomNumberGenerator::new());
     for room in map.rooms.iter().skip(1) {
         spawn_room(&mut gs.ecs, room);

@@ -2,7 +2,6 @@ use specs_derive::*;
 use specs::prelude::*;
 use rltk::{RGB};
 
-
 #[derive(Component)]
 pub struct Position {
     pub x: i32,
@@ -14,6 +13,7 @@ pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
+    pub render_order: i32,
 }
 
 #[derive(Component, Debug)]
@@ -25,7 +25,6 @@ pub struct Viewshed {
     pub range: i32,
     pub dirty: bool,
 }
-
 
 #[derive(Component, Debug)]
 pub struct Monster {}
@@ -57,7 +56,8 @@ pub struct SufferDamage {
 }
 
 impl SufferDamage {
-    pub fn new_damage(store: &mut WriteStorage<SufferDamage>, victim: Entity,
+    pub fn new_damage(store: &mut WriteStorage<SufferDamage>,
+                      victim: Entity,
                       amount: i32) {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);

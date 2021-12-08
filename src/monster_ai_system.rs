@@ -32,8 +32,7 @@ impl<'a> System<'a> for MonsterAI {
 
         if *run_state != RunState::MonsterTurn { return; }
 
-        for (entity, mut viewshed, _monster, mut pos)
-        in (&entities, &mut viewshed, &monster, &mut position).join() {
+        for (entity, mut viewshed, _monster, mut pos) in (&entities, &mut viewshed, &monster, &mut position).join() {
             let distance = rltk::DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y),
                                                                     *player_pos);
             if distance < 1.5 {
@@ -44,8 +43,9 @@ impl<'a> System<'a> for MonsterAI {
                 let path = rltk::a_star_search(
                     map.xy_idx(pos.x, pos.y),
                     map.xy_idx(player_pos.x, player_pos.y),
-                    &mut *map,
+                    &*map,
                 );
+
                 if path.success && path.steps.len() > 1 {
                     let mut idx = map.xy_idx(pos.x, pos.y);
                     map.blocked[idx] = false;
