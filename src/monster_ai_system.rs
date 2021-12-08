@@ -30,6 +30,8 @@ impl<'a> System<'a> for MonsterAI {
             mut position,
             mut wants_to_melee) = data;
 
+        if *run_state != RunState::MonsterTurn { return; }
+
         for (entity, mut viewshed, _monster, mut pos)
         in (&entities, &mut viewshed, &monster, &mut position).join() {
             let distance = rltk::DistanceAlg::Pythagoras.distance2d(Point::new(pos.x, pos.y),
