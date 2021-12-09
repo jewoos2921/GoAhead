@@ -1,4 +1,5 @@
 use specs::prelude::*;
+use crate::{Map, SufferDamage};
 use super::{WantsToPickupItem, Name, InBackPack, Position, GameLog, CombatStats,
             WantsToDrinkPotion, ProvidesHealing, WantsToDropItem, Consumable};
 
@@ -45,6 +46,7 @@ impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         ReadExpect<'a, Entity>,
         WriteExpect<'a, GameLog>,
+        ReadExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, WantsToDrinkPotion>,
         ReadStorage<'a, Name>,
@@ -79,6 +81,28 @@ impl<'a> System<'a> for ItemUseSystem {
                     if entity == *player_entity {
                         gamelog.entries.push(format!("You drink the {}, healing {} hp.",
                                                      names.get(usetime.item).unwrap().name, healer.heal_amount));
+                    }
+                }
+            }
+
+            // If it inflicts damage, apply it to the target cell
+            let item_damages = inflicit_damage.get(useitem.item);
+            match item_damages {
+                None =>{}
+                Some(damage) =>{
+                    let target_point = useitem.target.unwrap();
+                    let idx = map.xy_idx(target_point.x, target_point.y);
+                    used_item = false;
+                    for mob in map.tile_content[idx].iter() {
+                        SufferDamage::new_damage(&mut suffer_damage, *mob, damage.damage);
+                        if entity == *player_entity{
+                            let mob_name = names.get(*mob).unwrap();
+
+                            let item_name = names.get(useitem.item).unwrap();
+                            gamelog.entries.push(format!("You use {} on {}, inflicting {} hp.",
+                                                         item_name.name, mob_name.name, damage.damage));
+                        }
+                        used_item = true;
                     }
                 }
             }
