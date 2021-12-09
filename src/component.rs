@@ -72,7 +72,7 @@ impl SufferDamage {
 pub struct Item {}
 
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
@@ -96,3 +96,7 @@ pub struct WantsToDrinkPotion {
 pub struct WantsToDropItem {
     pub item: Entity,
 }
+
+#[derive(Component, Debug)]
+pub struct Consumable {}
+

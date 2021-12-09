@@ -28,7 +28,7 @@ use game_log::GameLog;
 use spawner::{player, random_monster, spawn_room};
 use inventory_system::{ItemCollectionSystem, ItemDropSystem};
 use gui::{show_inventory, drop_item_menu};
-use crate::inventory_system::PotionUseSystem;
+use crate::inventory_system::ItemUseSystem;
 
 
 #[derive(PartialEq, Copy, Clone)]
@@ -60,7 +60,7 @@ impl State {
         pickup.run_now(&self.ecs);
         // let itemuse =
 
-        let mut potions = PotionUseSystem {};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
 
         let mut drop_items = ItemDropSystem {};
@@ -179,7 +179,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
-    gs.ecs.register::<Potion>();
+    gs.ecs.register::<ProvidesHealing>();
     gs.ecs.register::<InBackPack>();
     gs.ecs.register::<WantsToPickupItem>();
     gs.ecs.register::<WantsToDrinkPotion>();
