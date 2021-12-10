@@ -13,12 +13,17 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
 
     for (_player, stats) in (&players, &combat_stats).join() {
         let health = format!(" HP: {} / {} ", stats.hp, stats.max_hp);
-        ctx.print_color(12, 43, RGB::named(rltk::YELLOW),
-                        RGB::named(rltk::BLACK), &health);
+        ctx.print_color(12, 43,
+                        RGB::named(rltk::YELLOW),
+                        RGB::named(rltk::BLACK),
+                        &health);
 
-        ctx.draw_bar_horizontal(28, 43, 51, stats.hp, stats.max_hp,
-                                RGB::named(rltk::RED), RGB::named(rltk::BLACK));
+        ctx.draw_bar_horizontal(28, 43, 51,
+                                stats.hp, stats.max_hp,
+                                RGB::named(rltk::RED),
+                                RGB::named(rltk::BLACK));
     }
+
     let log = ecs.fetch::<GameLog>();
     let mut y = 44;
 
@@ -63,7 +68,8 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
             let mut y = mouse_pos.1;
 
             for s in tooltip.iter() {
-                ctx.print_color(left_x, y, RGB::named(rltk::WHITE),
+                ctx.print_color(left_x, y,
+                                RGB::named(rltk::WHITE),
                                 RGB::named(rltk::GREY), s);
                 let padding = (width - s.len() as i32) - 1;
                 for i in 0..padding {
@@ -83,22 +89,25 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
 
             for s in tooltip.iter() {
                 ctx.print_color(left_x + 1, y,
-                                RGB::named(rltk::WHITE), RGB::named(rltk::GREY), s);
+                                RGB::named(rltk::WHITE),
+                                RGB::named(rltk::GREY), s);
+
                 let padding = (width - s.len() as i32) - 1;
 
                 for i in 0..padding {
                     ctx.print_color(arrow_pos.x + 1 + i, y,
-                                    RGB::named(rltk::WHITE), RGB::named(rltk::GREY), &" ".to_string());
+                                    RGB::named(rltk::WHITE),
+                                    RGB::named(rltk::GREY), &" ".to_string());
                 }
                 y += 1;
             }
             ctx.print_color(arrow_pos.x, arrow_pos.y,
                             RGB::named(rltk::WHITE),
-                            RGB::named(rltk::GREY), &"<-".to_string());
+                            RGB::named(rltk::GREY),
+                            &"<-".to_string());
         }
     }
 }
-
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum ItemMenuResult { Cancel, NoResponse, Selected }
@@ -115,7 +124,8 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
     let count = inventory.count();
 
     let mut y = (25 - (count / 2)) as i32;
-    ctx.draw_box(15, y - 2, 31, (count + 3) as i32,
+    ctx.draw_box(15, y - 2,
+                 31, (count + 3) as i32,
                  RGB::named(rltk::WHITE), RGB::named(rltk::BLACK));
     ctx.print_color(18, y - 2,
                     RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Inventory");
@@ -162,7 +172,8 @@ pub fn drop_item_menu(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
     let count = inventory.count();
 
     let mut y = (25 - (count / 2)) as i32;
-    ctx.draw_box(15, y - 2, 31, (count + 3) as i32,
+    ctx.draw_box(15, y - 2,
+                 31, (count + 3) as i32,
                  RGB::named(rltk::WHITE),
                  RGB::named(rltk::BLACK));
     ctx.print_color(18, y - 2,
@@ -207,11 +218,14 @@ pub fn ranged_target(gs: &mut State, ctx: &mut Rltk, range: i32) -> (ItemMenuRes
     let player_pos = gs.ecs.fetch::<Point>();
     let viewsheds = gs.ecs.read_storage::<Viewshed>();
 
-    ctx.print_color(5, 0, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Select Target:");
+    ctx.print_color(5, 0,
+                    RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                    "Select Target:");
 
     // Highlight available target cells
     let mut available_cells = Vec::new();
     let visible = viewsheds.get(*player_entity);
+
     if let Some(visible) = visible {
         // We have a viewshed
         for idx in visible.visible_tiles.iter() {
@@ -249,12 +263,13 @@ pub enum MainMenuSelection { NewGame, LoadGame, Quit }
 #[derive(PartialEq, Copy, Clone)]
 pub enum MainMenuResult { NoSelection { selected: MainMenuSelection }, Selected { selected: MainMenuSelection } }
 
-
 pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
     let save_exists = super::save_load_system::does_save_exist();
     let run_state = gs.ecs.fetch::<RunState>();
 
-    ctx.print_color_centered(15, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), "Rust Roguelike Tutorial");
+    ctx.print_color_centered(15,
+                             RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                             "Rust Roguelike Tutorial");
 
     if let RunState::MainMenu { menu_selection: selection } = *run_state {
         if selection == MainMenuSelection::NewGame {
@@ -265,12 +280,14 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
                                      "Begin New Game");
         }
 
-        if selection == MainMenuSelection::LoadGame {
-            ctx.print_color_centered(25, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK),
-                                     "Load Game");
-        } else {
-            ctx.print_color_centered(25, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
-                                     "Load Game");
+        if save_exists {
+            if selection == MainMenuSelection::LoadGame {
+                ctx.print_color_centered(25, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK),
+                                         "Load Game");
+            } else {
+                ctx.print_color_centered(25, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
+                                         "Load Game");
+            }
         }
 
         if selection == MainMenuSelection::Quit {
@@ -280,13 +297,14 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
             ctx.print_color_centered(26, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
                                      "Quit");
         }
+
         return match ctx.key {
             None => MainMenuResult::NoSelection { selected: selection },
             Some(key) => {
                 match key {
                     VirtualKeyCode::Escape => { MainMenuResult::NoSelection { selected: MainMenuSelection::Quit } }
                     VirtualKeyCode::Up => {
-                        let new_selection;
+                        let mut new_selection;
                         match selection {
                             MainMenuSelection::NewGame => new_selection = MainMenuSelection::Quit,
                             MainMenuSelection::LoadGame => new_selection = MainMenuSelection::NewGame,
@@ -298,7 +316,7 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
                         MainMenuResult::NoSelection { selected: new_selection }
                     }
                     VirtualKeyCode::Down => {
-                        let new_selection;
+                        let mut new_selection;
                         match selection {
                             MainMenuSelection::NewGame => new_selection = MainMenuSelection::LoadGame,
                             MainMenuSelection::LoadGame => new_selection = MainMenuSelection::Quit,
@@ -313,7 +331,7 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
                     _ => MainMenuResult::NoSelection { selected: selection }
                 }
             }
-        }
+        };
     }
 
     MainMenuResult::NoSelection { selected: MainMenuSelection::NewGame }

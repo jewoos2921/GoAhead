@@ -61,7 +61,8 @@ fn get_item(ecs: &mut World) {
         Some(item) => {
             let mut pickup = ecs.write_storage::<WantsToPickupItem>();
             pickup.insert(*player_entity,
-                          WantsToPickupItem { collected_by: *player_entity, item }).expect("Unable to insert want to pickup");
+                          WantsToPickupItem { collected_by: *player_entity, item })
+                .expect("Unable to insert want to pickup");
         }
     }
 }

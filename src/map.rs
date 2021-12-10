@@ -1,8 +1,7 @@
 // Make a map with solid boundaries adn 400 randomly placed walls. No guarantees that it won't look awful.
 
+use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk};
 use std::cmp::{max, min};
-use std::process::id;
-use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, RGB, Rltk, SmallVec};
 use specs::prelude::*;
 use super::{Rect};
 use serde::{Serialize, Deserialize};
@@ -108,14 +107,11 @@ impl Map {
             let h = rng.range(MIN_SIZE, MAX_SIZE);
             let x = rng.roll_dice(1, map.width - w - 1) - 1;
             let y = rng.roll_dice(1, map.height - h - 1) - 1;
-
             let new_room = Rect::new(x, y, w, h);
             let mut ok = true;
-
             for other_room in map.rooms.iter() {
                 if new_room.intersect(other_room) { ok = false }
             }
-
             if ok {
                 map.apply_room_to_map(&new_room);
 
