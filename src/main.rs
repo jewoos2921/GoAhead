@@ -26,9 +26,8 @@ use damage_system::{delete_the_dead, DamageSystem};
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, random_monster, spawn_room};
-use inventory_system::{ItemCollectionSystem, ItemDropSystem};
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 use gui::{show_inventory, drop_item_menu};
-use crate::inventory_system::ItemUseSystem;
 
 
 #[derive(PartialEq, Copy, Clone)]
@@ -66,10 +65,9 @@ impl State {
 
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
-        // let itemuse =
 
-        let mut potions = ItemUseSystem {};
-        potions.run_now(&self.ecs);
+        let mut itemuse = ItemUseSystem {};
+        itemuse.run_now(&self.ecs);
 
         let mut drop_items = ItemDropSystem {};
         drop_items.run_now(&self.ecs);
@@ -82,8 +80,8 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
-        draw_map(&self.ecs, ctx);
 
+        draw_map(&self.ecs, ctx);
         {
             let positions = self.ecs.read_storage::<Position>();
             let renderables = self.ecs.read_storage::<Renderable>();
@@ -91,7 +89,6 @@ impl GameState for State {
 
             let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
             data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-
             for (pos, render) in data.iter() {
                 let idx = map.xy_idx(pos.x, pos.y);
                 if map.visible_tiles[idx] {
@@ -99,9 +96,9 @@ impl GameState for State {
                 }
             }
 
-
             gui::draw_ui(&self.ecs, ctx);
         }
+
         let mut new_run_state;
         {
             let run_state = self.ecs.fetch::<RunState>();
@@ -127,21 +124,6 @@ impl GameState for State {
                 self.ecs.maintain();
                 new_run_state = RunState::AwaitingInput;
             }
-            RunState::ShowDropItem => {
-                let result = drop_item_menu(self, ctx);
-                match result.0 {
-                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
-                    gui::ItemMenuResult::NoResponse => {}
-                    gui::ItemMenuResult::Selected => {
-                        let item_entity = result.1.unwrap();
-
-                        let mut intent = self.ecs.write_storage::<WantsToDropItem>();
-                        intent.insert(*self.ecs.fetch::<Entity>(),
-                                      WantsToDropItem { item: item_entity }).expect("Unable to insert intent");
-                        new_run_state = RunState::PlayerTurn;
-                    }
-                }
-            }
             RunState::ShowInventory => {
                 let result = show_inventory(self, ctx);
                 match result.0 {
@@ -158,6 +140,21 @@ impl GameState for State {
                             intent.insert(*self.ecs.fetch::<Entity>(), WantsToUseItem { item: item_entity, target: None }).expect("Unable to insert intent");
                             new_run_state = RunState::PlayerTurn;
                         }
+                    }
+                }
+            }
+            RunState::ShowDropItem => {
+                let result = drop_item_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+
+                        let mut intent = self.ecs.write_storage::<WantsToDropItem>();
+                        intent.insert(*self.ecs.fetch::<Entity>(),
+                                      WantsToDropItem { item: item_entity }).expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
                     }
                 }
             }
@@ -185,7 +182,8 @@ impl GameState for State {
 
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
-    let mut context = RltkBuilder::simple80x50().with_title("Roguelike Tutorial").build()?;
+    let mut context = RltkBuilder::simple80x50()
+        .with_title("Roguelike Tutorial").build()?;
     context.with_post_scanlines(true);
 
     let mut gs = State {
@@ -204,10 +202,16 @@ fn main() -> rltk::BError {
     gs.ecs.register::<SufferDamage>();
     gs.ecs.register::<Item>();
     gs.ecs.register::<ProvidesHealing>();
+    gs.ecs.register::<InflictsDamage>();
+    gs.ecs.register::<AreaOfEffect>();
+    gs.ecs.register::<Consumable>();
+    gs.ecs.register::<Ranged>();
     gs.ecs.register::<InBackPack>();
     gs.ecs.register::<WantsToPickupItem>();
-    gs.ecs.register::<WantsToDrinkPotion>();
+    gs.ecs.register::<WantsToUseItem>();
     gs.ecs.register::<WantsToDropItem>();
+    gs.ecs.register::<Confusion>();
+
 
     let map: Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();

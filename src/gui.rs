@@ -1,7 +1,6 @@
 use specs::prelude::*;
 use rltk::{RGB, Rltk, Point, VirtualKeyCode};
-use crate::Viewshed;
-use super::{CombatStats, Player, GameLog, Map, Name, Position, InBackPack, State};
+use super::{CombatStats, Player, GameLog, Map, Name, Position, InBackPack, State, Viewshed};
 
 
 pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
@@ -81,6 +80,7 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
             let arrow_pos = Point::new(mouse_pos.0 + 1, mouse_pos.1);
             let left_x = mouse_pos.0 + 3;
             let mut y = mouse_pos.1;
+
             for s in tooltip.iter() {
                 ctx.print_color(left_x + 1, y,
                                 RGB::named(rltk::WHITE), RGB::named(rltk::GREY), s);
@@ -110,7 +110,8 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
     let entities = gs.ecs.entities();
 
 
-    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity);
+    let inventory = (&backpack, &names)
+        .join().filter(|item| item.0.owner == *player_entity);
     let count = inventory.count();
 
     let mut y = (25 - (count / 2)) as i32;
