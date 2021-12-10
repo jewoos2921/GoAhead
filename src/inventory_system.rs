@@ -1,7 +1,7 @@
 use specs::prelude::*;
-use crate::{AreaOfEffect, Confusion, InflictsDamage, Map, SufferDamage, WantsToUseItem};
 use super::{WantsToPickupItem, Name, InBackPack, Position, GameLog, CombatStats,
-            ProvidesHealing, WantsToDropItem, Consumable};
+            ProvidesHealing, WantsToDropItem, Consumable, AreaOfEffect, Confusion,
+            InflictsDamage, Map, SufferDamage, WantsToUseItem};
 
 pub struct ItemCollectionSystem {}
 

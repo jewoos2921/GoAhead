@@ -1,8 +1,10 @@
 use specs_derive::*;
 use specs::prelude::*;
 use rltk::{RGB};
+use super::Map;
+use serde::{Serialize, Deserialize};
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -16,7 +18,7 @@ pub struct Renderable {
     pub render_order: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Player {}
 
 #[derive(Component)]
@@ -120,4 +122,10 @@ pub struct WantsToUseItem {
 #[derive(Component, Debug, Clone)]
 pub struct WantsToDropItem {
     pub item: Entity,
+}
+
+pub struct SerializeMe;
+
+pub struct SerializationHelper {
+    pub map: Map,
 }
