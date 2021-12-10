@@ -129,7 +129,6 @@ pub struct WantsToDropItem {
 
 // Serialization helper code. We need to implement ConvertSaveload for each type that contains an
 // Entity.
-
 pub struct SerializeMe;
 
 #[derive(Component, Serialize, Deserialize, Clone)]
