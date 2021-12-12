@@ -1,6 +1,10 @@
 use specs::prelude::*;
-use rltk::{Rltk, GameState, RGB, Point, RandomNumberGenerator};
-use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
+use rltk::{Rltk,
+           GameState,
+           Point,
+           RandomNumberGenerator};
+use specs::saveload::{SimpleMarker,
+                      SimpleMarkerAllocator};
 
 extern crate serde;
 
@@ -33,7 +37,7 @@ use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, spawn_room};
 use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
-use gui::{show_inventory, drop_item_menu, main_menu, ranged_target};
+use gui::{show_inventory, drop_item_menu, main_menu};
 use save_load_system::{delete_save, load_game};
 
 
@@ -354,6 +358,10 @@ fn main() -> rltk::BError {
     gs.ecs.register::<SerializationHelper>();
     gs.ecs.register::<Equippable>();
     gs.ecs.register::<Equipped>();
+    gs.ecs.register::<MeleePowerBonus>();
+    gs.ecs.register::<DefenseBonus>();
+
+
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     let map: Map = Map::new_map_rooms_and_corridors(1);

@@ -3,7 +3,7 @@ use rltk::{RGB, RandomNumberGenerator};
 use specs::prelude::*;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use crate::create_table::RandomTable;
-use crate::{EquipmentSlot, Equippable};
+use crate::{DefenseBonus, EquipmentSlot, Equippable, MeleePowerBonus};
 use super::{CombatStats, Player, Renderable,
             Name, Position, Viewshed, Monster,
             BlocksTile, Rect, Item, ProvidesHealing,
@@ -12,7 +12,7 @@ use super::{CombatStats, Player, Renderable,
 
 
 const MAX_MONSTERS: i32 = 4;
-const MAX_ITEMS: i32 = 2;
+// const MAX_ITEMS: i32 = 2;
 
 // Spawn the player and returns his/her entity object
 pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
@@ -200,6 +200,7 @@ fn dagger(ecs: &mut World, x: i32, y: i32) {
         .with(Name { name: "Dagger".to_string() })
         .with(Item {})
         .with(Equippable { slot: EquipmentSlot::Melee })
+        .with(MeleePowerBonus { power: 2 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
@@ -216,6 +217,7 @@ fn shield(ecs: &mut World, x: i32, y: i32) {
         .with(Name { name: "Shield".to_string() })
         .with(Item {})
         .with(Equippable { slot: EquipmentSlot::Shield })
+        .with(DefenseBonus { defense: 1 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }

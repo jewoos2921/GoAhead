@@ -146,8 +146,19 @@ pub enum EquipmentSlot {
 pub struct Equippable {
     pub slot: EquipmentSlot,
 }
+
 #[derive(Component, Clone, ConvertSaveload)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipmentSlot,
+}
+
+#[derive(Component, Clone, ConvertSaveload)]
+pub struct MeleePowerBonus {
+    pub power: i32,
+}
+
+#[derive(Component, Clone, ConvertSaveload)]
+pub struct DefenseBonus {
+    pub defense: i32,
 }

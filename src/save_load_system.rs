@@ -50,7 +50,8 @@ pub fn save_game(ecs: &mut World) {
         serialize_individually!(ecs, serializer, data, Position, Renderable, Player, Viewshed,
             Monster, Name , BlocksTile, CombatStats, SufferDamage, WantsToMelee, Item,
             Consumable, Ranged, InflictsDamage, AreaOfEffect, Confusion, ProvidesHealing,
-            InBackPack, WantsToPickupItem, WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped);
+            InBackPack, WantsToPickupItem, WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped,
+             MeleePowerBonus, DefenseBonus);
     }
 
     // Clean up
@@ -87,7 +88,7 @@ pub fn load_game(ecs: &mut World) {
         deserialize_individually!(ecs, de, d, Position, Renderable, Player,
                 Viewshed, Monster, Name, BlocksTile, CombatStats, SufferDamage, WantsToMelee, Item, Consumable,
                 Ranged, InflictsDamage, AreaOfEffect, Confusion, ProvidesHealing, InBackPack, WantsToPickupItem,
-                WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped);
+                WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped, MeleePowerBonus, DefenseBonus);
     }
 
     let mut deleteme: Option<Entity> = None;

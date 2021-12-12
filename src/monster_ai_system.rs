@@ -1,5 +1,5 @@
 use specs::prelude::*;
-use super::{Viewshed, Name, Monster, Map, Position, RunState, WantsToMelee};
+use super::{Viewshed, Monster, Map, Position, RunState, WantsToMelee};
 use rltk::{Point};
 use crate::Confusion;
 

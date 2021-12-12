@@ -1,4 +1,3 @@
-use std::fmt::format;
 use specs::prelude::*;
 use crate::{Equippable, Equipped};
 use super::{WantsToPickupItem, Name, InBackPack, Position, GameLog, CombatStats,
