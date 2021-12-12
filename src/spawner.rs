@@ -33,7 +33,7 @@ pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
 // Fills a room with stuff!
 #[allow(clippy::map_entry)]
 pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
-    let spawn_table = room_table();
+    let spawn_table = room_table(map_depth);
     let mut spawn_points: HashMap<usize, String> = HashMap::new();
 
     // Scope to keep the borrow checker happy
@@ -76,33 +76,6 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
         }
     }
 }
-
-// // Spawn a random monster at a given location
-// fn random_monster(ecs: &mut World, x: i32, y: i32) {
-//     let roll: i32;
-//     {
-//         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-//         roll = rng.roll_dice(1, 2);
-//     }
-//     match roll {
-//         1 => { orc(ecs, x, y) }
-//         _ => { goblin(ecs, x, y) }
-//     }
-// }
-
-// fn random_item(ecs: &mut World, x: i32, y: i32) {
-//     let roll: i32;
-//     {
-//         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-//         roll = rng.roll_dice(1, 4);
-//     }
-//     match roll {
-//         1 => { health_potion(ecs, x, y) }
-//         2 => { fireball_scroll(ecs, x, y) }
-//         3 => { confusion_scroll(ecs, x, y) }
-//         _ => { magic_missile_scroll(ecs, x, y) }
-//     }
-// }
 
 fn orc(ecs: &mut World, x: i32, y: i32) { monster(ecs, x, y, rltk::to_cp437('o'), "ORC"); }
 
@@ -199,13 +172,14 @@ fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
         .build();
 }
 
-fn room_table() -> RandomTable {
+fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
         .add("Goblin", 10)
-        .add("Orc", 1)
+        .add("Orc", 1 + map_depth)
         .add("Health Potion", 7)
-        .add("Fireball Scroll", 2)
-        .add("Confusion Scroll", 2)
+        .add("Fireball Scroll", 2 + map_depth)
+        .add("Confusion Scroll", 2 + map_depth)
         .add("Magic Missile Scroll", 4)
 }
+
 
