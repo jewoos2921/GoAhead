@@ -18,6 +18,7 @@ mod game_log;
 mod spawner;
 mod inventory_system;
 mod save_load_system;
+mod create_table;
 
 pub use component::*;
 pub use map::*;
