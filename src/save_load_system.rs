@@ -50,7 +50,7 @@ pub fn save_game(ecs: &mut World) {
         serialize_individually!(ecs, serializer, data, Position, Renderable, Player, Viewshed,
             Monster, Name , BlocksTile, CombatStats, SufferDamage, WantsToMelee, Item,
             Consumable, Ranged, InflictsDamage, AreaOfEffect, Confusion, ProvidesHealing,
-            InBackPack, WantsToPickupItem, WantsToUseItem, WantsToDropItem, SerializationHelper);
+            InBackPack, WantsToPickupItem, WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped);
     }
 
     // Clean up
@@ -87,7 +87,7 @@ pub fn load_game(ecs: &mut World) {
         deserialize_individually!(ecs, de, d, Position, Renderable, Player,
                 Viewshed, Monster, Name, BlocksTile, CombatStats, SufferDamage, WantsToMelee, Item, Consumable,
                 Ranged, InflictsDamage, AreaOfEffect, Confusion, ProvidesHealing, InBackPack, WantsToPickupItem,
-                WantsToUseItem, WantsToDropItem, SerializationHelper);
+                WantsToUseItem, WantsToDropItem, SerializationHelper, Equippable, Equipped);
     }
 
     let mut deleteme: Option<Entity> = None;
@@ -97,7 +97,7 @@ pub fn load_game(ecs: &mut World) {
         let player = ecs.read_storage::<Player>();
         let position = ecs.read_storage::<Position>();
 
-        for (e, h) in (&entities, & helper).join() {
+        for (e, h) in (&entities, &helper).join() {
             let mut worldmap = ecs.write_resource::<Map>();
             *worldmap = h.map.clone();
             worldmap.tile_content = vec![Vec::new(); MAP_COUNT];

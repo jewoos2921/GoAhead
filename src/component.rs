@@ -135,3 +135,19 @@ pub struct SerializeMe;
 pub struct SerializationHelper {
     pub map: Map,
 }
+
+#[derive(PartialEq, Copy, Serialize, Deserialize, Clone)]
+pub enum EquipmentSlot {
+    Melee,
+    Shield,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Equippable {
+    pub slot: EquipmentSlot,
+}
+#[derive(Component, Clone, ConvertSaveload)]
+pub struct Equipped {
+    pub owner: Entity,
+    pub slot: EquipmentSlot,
+}

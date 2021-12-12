@@ -90,6 +90,7 @@ impl State {
         let player = self.ecs.read_storage::<Player>();
         let backpack = self.ecs.read_storage::<InBackPack>();
         let player_entity = self.ecs.fetch::<Entity>();
+        let equipped = self.ecs.read_storage::<Equipped>();
 
         let mut to_delete: Vec<Entity> = Vec::new();
         for entity in entities.join() {
@@ -108,6 +109,14 @@ impl State {
                     should_delete = false;
                 }
             }
+
+            let eq = equipped.get(entity);
+            if let Some(eq) = eq {
+                if eq.owner == *player_entity {
+                    should_delete = false;
+                }
+            }
+
             if should_delete {
                 to_delete.push(entity);
             }
@@ -343,8 +352,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Confusion>();
     gs.ecs.register::<SimpleMarker<SerializeMe>>();
     gs.ecs.register::<SerializationHelper>();
-
-
+    gs.ecs.register::<Equippable>();
+    gs.ecs.register::<Equipped>();
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     let map: Map = Map::new_map_rooms_and_corridors(1);
