@@ -124,16 +124,17 @@ impl State {
 
         // Build a new map and place the player
         let wordmap;
+        let current_depth;
         {
             let mut worldmap_resource = self.ecs.write_resource::<Map>();
-            let current_depth = worldmap_resource.depth;
+            current_depth = worldmap_resource.depth;
             *worldmap_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
             wordmap = worldmap_resource.clone();
         }
 
         // Spawn bad guys
         for room in wordmap.rooms.iter().skip(1) {
-            spawner::spawn_room(&mut self.ecs, room);
+            spawner::spawn_room(&mut self.ecs, room, current_depth + 1);
         }
 
         // Place the player and update resources
@@ -165,7 +166,6 @@ impl State {
             player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
         }
     }
-
 }
 
 
@@ -202,6 +202,7 @@ impl GameState for State {
                 }
             }
         }
+
         match new_run_state {
             RunState::PreRun => {
                 self.run_system();
@@ -352,8 +353,9 @@ fn main() -> rltk::BError {
     let player_entity = player(&mut gs.ecs, player_x, player_y);
 
     gs.ecs.insert(RandomNumberGenerator::new());
+
     for room in map.rooms.iter().skip(1) {
-        spawn_room(&mut gs.ecs, room);
+        spawn_room(&mut gs.ecs, room, 1);
     }
 
     gs.ecs.insert(map);
