@@ -1,3 +1,5 @@
+extern crate serde;
+
 use specs::prelude::*;
 use rltk::{Rltk,
            GameState,
@@ -5,8 +7,6 @@ use rltk::{Rltk,
            RandomNumberGenerator};
 use specs::saveload::{SimpleMarker,
                       SimpleMarkerAllocator};
-
-extern crate serde;
 
 mod map;
 mod player;
@@ -22,7 +22,8 @@ mod game_log;
 mod spawner;
 mod inventory_system;
 mod save_load_system;
-mod create_table;
+mod random_table;
+
 
 pub use component::*;
 pub use map::*;
@@ -37,7 +38,7 @@ use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, spawn_room};
 use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem, ItemRemoveSystem};
-use gui::{show_inventory, drop_item_menu, main_menu};
+use gui::{show_inventory, drop_item_menu, MainMenuSelection, main_menu};
 use save_load_system::{delete_save, load_game};
 
 
@@ -50,10 +51,11 @@ pub enum RunState {
     ShowInventory,
     ShowDropItem,
     ShowTargeting { range: i32, item: Entity },
-    MainMenu { menu_selection: gui::MainMenuSelection },
+    MainMenu { menu_selection: MainMenuSelection },
     SaveGame,
     NextLevel,
     ShowRemoveItem,
+    GameOver,
 }
 
 pub struct State {
@@ -129,6 +131,7 @@ impl State {
                 to_delete.push(entity);
             }
         }
+
         to_delete
     }
 
@@ -151,17 +154,17 @@ impl State {
 
         // Spawn bad guys
         for room in wordmap.rooms.iter().skip(1) {
-            spawner::spawn_room(&mut self.ecs, room, current_depth + 1);
+            spawn_room(&mut self.ecs, room, current_depth + 1);
         }
 
         // Place the player and update resources
         let (player_x, player_y) = wordmap.rooms[0].center();
         let mut player_position = self.ecs.write_resource::<Point>();
         *player_position = Point::new(player_x, player_y);
-
-        let mut position_componetnts = self.ecs.write_storage::<Position>();
+        let mut position_components = self.ecs.write_storage::<Position>();
         let player_entity = self.ecs.fetch::<Entity>();
-        let player_pos_comp = position_componetnts.get_mut(*player_entity);
+        let player_pos_comp = position_components.get_mut(*player_entity);
+
         if let Some(player_pos_comp) = player_pos_comp {
             player_pos_comp.x = player_x;
             player_pos_comp.y = player_y;
@@ -181,6 +184,53 @@ impl State {
         let player_health = player_health_store.get_mut(*player_entity);
         if let Some(player_health) = player_health {
             player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
+        }
+    }
+
+    fn game_over_cleanup(&mut self) {
+        // Delete everything
+        let mut to_delete = Vec::new();
+        for e in self.ecs.entities().join() {
+            to_delete.push(e);
+        }
+
+        for del in to_delete.iter() {
+            self.ecs.delete_entity(*del).expect("Deletion failed");
+        }
+
+        // Build a new map and place the player
+        let wordlmap;
+        {
+            let mut worldmap_resource = self.ecs.write_resource::<Map>();
+            *worldmap_resource = Map::new_map_rooms_and_corridors(1);
+            wordlmap = worldmap_resource.clone();
+        }
+
+        // Spawn bad guys
+        for room in wordlmap.rooms.iter().skip(1) {
+            spawn_room(&mut self.ecs, room, 1);
+        }
+
+        // Place the player and update resource
+        let (player_x, player_y) = wordlmap.rooms[0].center();
+        let player_entity = player(&mut self.ecs, player_x, player_y);
+        let mut player_position = self.ecs.write_resource::<Point>();
+        *player_position = Point::new(player_x, player_y);
+        let mut position_components = self.ecs.write_storage::<Position>();
+        let mut player_entity_writer = self.ecs.write_resource::<Entity>();
+
+        *player_entity_writer = player_entity;
+        let player_pos_comp = position_components.get_mut(player_entity);
+        if let Some(player_pos_comp) = player_pos_comp {
+            player_pos_comp.x = player_x;
+            player_pos_comp.y = player_y;
+        }
+
+        // Mark the player's visibility as dirty
+        let mut viewshed_components = self.ecs.write_storage::<Viewshed>();
+        let vs = viewshed_components.get_mut(player_entity);
+        if let Some(vs) = vs {
+            vs.dirty = true;
         }
     }
 }
@@ -331,6 +381,16 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::GameOver => {
+                let result = gui::game_over(ctx);
+                match result {
+                    gui::GameOverResult::NoSelection => {}
+                    gui::GameOverResult::QuitToMenu => {
+                        self.game_over_cleanup();
+                        new_run_state = RunState::MainMenu { menu_selection: MainMenuSelection::NewGame };
+                    }
+                }
+            }
         }
         {
             let mut run_writer = self.ecs.write_resource::<RunState>();
@@ -378,7 +438,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Equipped>();
     gs.ecs.register::<MeleePowerBonus>();
     gs.ecs.register::<DefenseBonus>();
-
+    gs.ecs.register::<WantsToRemoveItem>();
 
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 

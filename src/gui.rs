@@ -1,7 +1,7 @@
 use specs::prelude::*;
 use rltk::{RGB, Rltk, Point, VirtualKeyCode};
-use crate::Equipped;
-use super::{CombatStats, Player, GameLog, Map, Name, Position, InBackPack, State, Viewshed, RunState};
+use super::{CombatStats, Player, GameLog, Map, Name,
+            Position, InBackPack, State, Viewshed, RunState, Equipped};
 
 
 pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
@@ -11,10 +11,6 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
 
     let combat_stats = ecs.read_storage::<CombatStats>();
     let players = ecs.read_storage::<Player>();
-
-    let map = ecs.fetch::<Map>();
-    let depth = format!("Depth: {}", map.depth);
-    ctx.print_color(2, 43, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &depth);
 
     for (_player, stats) in (&players, &combat_stats).join() {
         let health = format!(" HP: {} / {} ", stats.hp, stats.max_hp);
@@ -29,9 +25,12 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
                                 RGB::named(rltk::BLACK));
     }
 
+    let map = ecs.fetch::<Map>();
+    let depth = format!("Depth: {}", map.depth);
+    ctx.print_color(2, 43, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK), &depth);
+
     let log = ecs.fetch::<GameLog>();
     let mut y = 44;
-
     for s in log.entries.iter().rev() {
         if y < 49 { ctx.print(2, y, s); }
         y += 1;
@@ -86,7 +85,8 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
             }
             ctx.print_color(arrow_pos.x, arrow_pos.y,
                             RGB::named(rltk::WHITE),
-                            RGB::named(rltk::GREY), &"->".to_string());
+                            RGB::named(rltk::GREY),
+                            &"->".to_string());
         } else {
             let arrow_pos = Point::new(mouse_pos.0 + 1, mouse_pos.1);
             let left_x = mouse_pos.0 + 3;
@@ -150,6 +150,7 @@ pub fn show_inventory(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
         y += 1;
         j += 1;
     }
+
     match ctx.key {
         None => (ItemMenuResult::NoResponse, None),
         Some(key) => {
@@ -218,13 +219,69 @@ pub fn drop_item_menu(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option
     }
 }
 
+pub fn remove_item_menu(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option<Entity>) {
+    let player_entity = gs.ecs.fetch::<Entity>();
+    let names = gs.ecs.read_storage::<Name>();
+    let backpack = gs.ecs.read_storage::<Equipped>();
+    let entities = gs.ecs.entities();
+
+    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity);
+    let count = inventory.count();
+
+
+    let mut y = (25 - (count / 2)) as i32;
+
+    ctx.draw_box(15, y - 2, 31, (count + 3) as i32,
+                 RGB::named(rltk::WHITE),
+                 RGB::named(rltk::BLACK));
+
+    ctx.print_color(18, y - 2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                    "Remove Which Item?");
+    ctx.print_color(18, y + count as i32 + 1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                    "ESCAPE to cancel");
+
+
+    let mut equippable: Vec<Entity> = Vec::new();
+    let mut j = 0;
+    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity) {
+        ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
+                rltk::to_cp437('('));
+        ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                97 + j as rltk::FontCharType);
+        ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
+                rltk::to_cp437(')'));
+
+        ctx.print(21, y, &name.name.to_string());
+        equippable.push(entity);
+        y += 1;
+        j += 1;
+    }
+
+    match ctx.key {
+        None => (ItemMenuResult::NoResponse, None),
+        Some(key) => {
+            match key {
+                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
+                _ => {
+                    let selection = rltk::letter_to_option(key);
+                    if selection > -1 && selection < count as i32 {
+                        return (ItemMenuResult::Selected, Some(equippable[selection as usize]));
+                    }
+                    (ItemMenuResult::NoResponse, None)
+                }
+            }
+        }
+    }
+}
+
 pub fn ranged_target(gs: &mut State, ctx: &mut Rltk, range: i32) -> (ItemMenuResult, Option<Point>) {
     let player_entity = gs.ecs.fetch::<Entity>();
     let player_pos = gs.ecs.fetch::<Point>();
     let viewsheds = gs.ecs.read_storage::<Viewshed>();
 
     ctx.print_color(5, 0,
-                    RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                    RGB::named(rltk::YELLOW),
+                    RGB::named(rltk::BLACK),
                     "Select Target:");
 
     // Highlight available target cells
@@ -342,55 +399,20 @@ pub fn main_menu(gs: &mut State, ctx: &mut Rltk) -> MainMenuResult {
     MainMenuResult::NoSelection { selected: MainMenuSelection::NewGame }
 }
 
-pub fn remove_item_menu(gs: &mut State, ctx: &mut Rltk) -> (ItemMenuResult, Option<Entity>) {
-    let player_entity = gs.ecs.fetch::<Entity>();
-    let names = gs.ecs.read_storage::<Name>();
-    let backpack = gs.ecs.read_storage::<Equipped>();
-    let entities = gs.ecs.entities();
+#[derive(PartialEq, Copy, Clone)]
+pub enum GameOverResult { NoSelection, QuitToMenu }
 
-    let inventory = (&backpack, &names).join().filter(|item| item.0.owner == *player_entity);
-    let count = inventory.count();
-
-
-    let mut y = (25 - (count / 2)) as i32;
-
-    ctx.draw_box(15, y - 2, 31, (count + 3) as i32, RGB::named(rltk::WHITE),
-                 RGB::named(rltk::BLACK));
-    ctx.print_color(18, y - 2, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
-                    "Remove Which Item?");
-    ctx.print_color(18, y + count as i32 + 1, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
-                    "ESCAPE to cancel");
-
-
-    let mut equppable: Vec<Entity> = Vec::new();
-    let mut j = 0;
-    for (entity, _pack, name) in (&entities, &backpack, &names).join().filter(|item| item.1.owner == *player_entity) {
-        ctx.set(17, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
-                rltk::to_cp437('('));
-        ctx.set(18, y, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
-                97 + j as rltk::FontCharType);
-        ctx.set(19, y, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
-                rltk::to_cp437(')'));
-
-        ctx.print(21, y, &name.name.to_string());
-        equppable.push(entity);
-        y += 1;
-        j += 1;
-    }
-
+pub fn game_over(ctx: &mut Rltk) -> GameOverResult {
+    ctx.print_color_centered(15, RGB::named(rltk::YELLOW), RGB::named(rltk::BLACK),
+                             "Your journey has ended!");
+    ctx.print_color_centered(17, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
+                             "One day, we'll tell you all about how you did.");
+    ctx.print_color_centered(18, RGB::named(rltk::WHITE), RGB::named(rltk::BLACK),
+                             "That day, sadly, is not in this chapter..");
+    ctx.print_color_centered(20, RGB::named(rltk::MAGENTA), RGB::named(rltk::BLACK),
+                             "Press any key to return to the menu.");
     match ctx.key {
-        None => (ItemMenuResult::NoResponse, None),
-        Some(key) => {
-            match key {
-                VirtualKeyCode::Escape => { (ItemMenuResult::Cancel, None) }
-                _ => {
-                    let selection = rltk::letter_to_option(key);
-                    if selection > -1 && selection < count as i32 {
-                        return (ItemMenuResult::Selected, Some(equppable[selection as usize]));
-                    }
-                    (ItemMenuResult::NoResponse, None)
-                }
-            }
-        }
+        None => GameOverResult::NoSelection,
+        Some(_) => GameOverResult::QuitToMenu
     }
 }

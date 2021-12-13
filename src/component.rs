@@ -4,8 +4,7 @@ use rltk::{RGB};
 use serde::{Serialize, Deserialize};
 use specs::saveload::{Marker, ConvertSaveload};
 use specs::error::NoError;
-
-use super::Map;
+use super::map::Map;
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -104,36 +103,32 @@ pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct InBackPack {
     pub owner: Entity,
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item: Entity,
     pub target: Option<rltk::Point>,
 }
 
-#[derive(Component, Debug, ConvertSaveload)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToDropItem {
     pub item: Entity,
 }
 
-// Serialization helper code. We need to implement ConvertSaveload for each type that contains an
-// Entity.
-pub struct SerializeMe;
-
-#[derive(Component, Serialize, Deserialize, Clone)]
-pub struct SerializationHelper {
-    pub map: Map,
+#[derive(Component, Clone, ConvertSaveload, Debug)]
+pub struct WantsToRemoveItem {
+    pub item: Entity,
 }
 
 #[derive(PartialEq, Copy, Serialize, Deserialize, Clone)]
@@ -163,7 +158,11 @@ pub struct DefenseBonus {
     pub defense: i32,
 }
 
-#[derive(Component, Clone, ConvertSaveload, Debug)]
-pub struct WantsToRemoveItem {
-    pub item: Entity,
+// Serialization helper code. We need to implement ConvertSaveload for each type that contains an
+// Entity.
+pub struct SerializeMe;
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct SerializationHelper {
+    pub map: Map,
 }
