@@ -162,3 +162,8 @@ pub struct MeleePowerBonus {
 pub struct DefenseBonus {
     pub defense: i32,
 }
+
+#[derive(Component, Clone, ConvertSaveload, Debug)]
+pub struct WantsToRemoveItem {
+    pub item: Entity,
+}

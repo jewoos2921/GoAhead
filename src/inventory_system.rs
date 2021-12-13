@@ -1,8 +1,8 @@
 use specs::prelude::*;
-use crate::{Equippable, Equipped};
+use specs::{AccessorCow, RunningTime};
 use super::{WantsToPickupItem, Name, InBackPack, Position, GameLog, CombatStats,
             ProvidesHealing, WantsToDropItem, Consumable, AreaOfEffect, Confusion,
-            InflictsDamage, Map, SufferDamage, WantsToUseItem};
+            InflictsDamage, Map, SufferDamage, WantsToUseItem, Equippable, Equipped, WantsToRemoveItem};
 
 pub struct ItemCollectionSystem {}
 
@@ -270,5 +270,23 @@ impl<'a> System<'a> for ItemDropSystem {
         }
 
         wants_drop.clear();
+    }
+}
+
+pub struct ItemRemoveSystem {}
+
+impl<'a> System<'a> for ItemRemoveSystem {
+    #[allow(clippy::type_complexity)]
+    type SystemData = (Entities<'a>, WriteStorage<'a, WantsToRemoveItem>,
+                       WriteStorage<'a, Equipped>, WriteStorage<'a, InBackPack>);
+
+
+    fn run(&mut self, data: Self::SystemData) {
+        let (entities, mut wants_remove, mut equipped, mut backpack) = data;
+        for (entity, to_remove) in (&entities, &wants_remove).join() {
+            equipped.remove(to_remove.item);
+            backpack.insert(to_remove.item, InBackPack { owner: entity }).expect("Unable to insert backpack");
+        }
+        wants_remove.clear();
     }
 }

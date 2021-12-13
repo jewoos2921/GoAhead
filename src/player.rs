@@ -1,9 +1,8 @@
 use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
-use crate::Monster;
 use super::{Map, Player, Position, State, TileType, Viewshed, RunState, CombatStats,
-            WantsToMelee, GameLog, Item, WantsToPickupItem};
+            WantsToMelee, GameLog, Item, WantsToPickupItem, Monster};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
@@ -123,6 +122,8 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::Numpad5 => return skip_turn(&mut gs.ecs),
             VirtualKeyCode::Space => return skip_turn(&mut gs.ecs),
 
+            VirtualKeyCode::R => return RunState::ShowRemoveItem,
+
             _ => { return RunState::AwaitingInput; }
         },
     }
@@ -166,6 +167,6 @@ fn skip_turn(ecs: &mut World) -> RunState {
         let player_hp = health_components.get_mut(*player_entity).unwrap();
         player_hp.hp = i32::min(player_hp.hp + 1, player_hp.max_hp);
     }
-    
+
     RunState::PlayerTurn
 }

@@ -36,7 +36,7 @@ use damage_system::{delete_the_dead, DamageSystem};
 use melee_combat_system::MeleeCombatSystem;
 use game_log::GameLog;
 use spawner::{player, spawn_room};
-use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem, ItemRemoveSystem};
 use gui::{show_inventory, drop_item_menu, main_menu};
 use save_load_system::{delete_save, load_game};
 
@@ -53,6 +53,7 @@ pub enum RunState {
     MainMenu { menu_selection: gui::MainMenuSelection },
     SaveGame,
     NextLevel,
+    ShowRemoveItem,
 }
 
 pub struct State {
@@ -85,6 +86,9 @@ impl State {
 
         let mut drop_items = ItemDropSystem {};
         drop_items.run_now(&self.ecs);
+
+        let mut item_remove = ItemRemoveSystem {};
+        item_remove.run_now(&self.ecs);
 
         self.ecs.maintain();
     }
@@ -312,6 +316,20 @@ impl GameState for State {
             RunState::NextLevel => {
                 self.goto_next_level();
                 new_run_state = RunState::PreRun;
+            }
+
+            RunState::ShowRemoveItem => {
+                let result = gui::remove_item_menu(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let mut intent = self.ecs.write_storage::<WantsToRemoveItem>();
+                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToRemoveItem { item: item_entity }).expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
+                    }
+                }
             }
         }
         {
